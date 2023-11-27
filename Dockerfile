@@ -1,4 +1,4 @@
 FROM alpine:latest
 
-RUN /
- apk add -U nano /
+RUN \
+ apk add -U nano \

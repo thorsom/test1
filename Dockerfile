@@ -1,5 +1,5 @@
 FROM alpine:latest
 
 RUN \
- echo "********* Install stuff2" && \
+ echo "*** Install stuff ***" && \
  apk add -U ffmpeg \

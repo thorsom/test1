@@ -1,0 +1,31 @@
+# This is a basic workflow that is manually triggered
+
+name: Manual workflow
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for new release
+        id: check
+        run: |
+          # Use GitHub's API to check for a new release
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/{owner}/{repo}/releases/latest" | jq -r .tag_name)
+          echo "::set-output name=version::${LATEST_RELEASE}"
+
+      - name: Create new release
+        if: steps.check.outputs.version != $(cat latest_release.txt)
+        run: |
+          # Update the file with the new version
+          echo "${{ steps.check.outputs.version }}" > latest_release.txt
+          
+          # Create a new release in your repository
+          gh release create ${{ steps.check.outputs.version }}

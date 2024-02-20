@@ -9,7 +9,6 @@ on:
     # Inputs the workflow accepts.
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
-
 jobs:
   check-release:
     runs-on: ubuntu-latest
@@ -21,11 +20,21 @@ jobs:
           LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/linuxserver/docker-sabnzbd/releases/latest" | jq -r .tag_name)
           echo "::set-output name=version::${LATEST_RELEASE}"
 
+      - name: Read latest processed release
+        id: read
+        run: |
+          if [ -f latest_release.txt ]; then
+            echo "::set-output name=processed::$(cat latest_release.txt)"
+          else
+            echo "::set-output name=processed::"
+          fi
+
       - name: Create new release
-        if: steps.check.outputs.version != $(cat latest_release.txt)
+        if: steps.check.outputs.version != steps.read.outputs.processed
         run: |
           # Update the file with the new version
           echo "${{ steps.check.outputs.version }}" > latest_release.txt
           
           # Create a new release in your repository
           gh release create ${{ steps.check.outputs.version }}
+          

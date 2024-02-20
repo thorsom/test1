@@ -1,0 +1,24 @@
+name: Check for new releases
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour
+
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for new release
+        id: check
+        run: |
+          # Use GitHub's API to check for a new release
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/linuxserver/docker-sabnzbd/releases/latest" | jq -r .tag_name)
+          echo "::set-output name=version::${LATEST_RELEASE}"
+
+      - name: Create new release
+        if: steps.check.outputs.version != '${{ secrets.LATEST_RELEASE }}'
+        run: |
+          # Update the secret with the new version
+          gh api -X PUT /repos/thorsom/test1/actions/secrets/LATEST_RELEASE -F encrypted_value=$(echo -n "${{ steps.check.outputs.version }}" | gh secret set LATEST_RELEASE)
+          
+          # Create a new release in your repository
+          gh release create ${{ steps.check.outputs.version }}

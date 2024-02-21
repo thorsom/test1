@@ -35,14 +35,11 @@ jobs:
       - name: Create new release
         if: steps.check.outputs.version != steps.read.outputs.processed
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Update the file with the new version
           echo "${{ steps.check.outputs.version }}" > latest_release.txt
           
           # Create a new release in your repository
           gh release create ${{ steps.check.outputs.version }}
-          env:
-          # GH_TOKEN: ${{ github.token }}
-            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

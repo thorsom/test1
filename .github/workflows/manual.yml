@@ -19,7 +19,10 @@ jobs:
           # Use GitHub's API to check for a new release
           LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest" | jq -r .tag_name)
           echo "::set-output name=version::${LATEST_RELEASE}"
-
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Read latest processed release
         id: read
         run: |

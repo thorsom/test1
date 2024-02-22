@@ -30,8 +30,8 @@ jobs:
       - name: Read latest processed release
         id: read
         run: |
-          if [ -f latest_release.txt ]; then
-            echo "::set-output name=processed::$(cat latest_release.txt)"
+          if [ CURRENT_RELEASE=$(curl --silent "https://api.github.com/repos/thorsom/test1/releases/latest" | jq -r .tag_name) ]; then
+            echo "::set-output name=processed::${CURRENT_RELEASE}"
           else
             echo "::set-output name=processed::"
           fi

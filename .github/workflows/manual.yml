@@ -23,6 +23,7 @@ jobs:
           # Use GitHub's API to check for a new release
           LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest" | jq -r .tag_name)
           echo "::set-output name=version::${LATEST_RELEASE}"
+          echo ${{ steps.check.outputs.version }} is latest release
       
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,6 +36,7 @@ jobs:
           else
             echo "::set-output name=processed::"
           fi
+          echo ${{ steps.check.outputs.processed }} is local release
 
       - name: Create new release
         if: steps.check.outputs.version != steps.read.outputs.processed

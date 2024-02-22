@@ -12,10 +12,9 @@ on:
 jobs:
   check-release:
     runs-on: ubuntu-latest
-    
-  permissions:
-    contents: write
-    packages: write
+    permissions:
+      contents: write
+      packages: write
     
     steps:
       - name: Check for new release

@@ -51,5 +51,5 @@ jobs:
           # echo "${{ steps.check.outputs.processed }}" is local release
           
           # Create a new release in your repository
-          gh release create v${{ steps.check.outputs.version }}
+          gh release create ${{ steps.check.outputs.version }}
 

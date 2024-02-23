@@ -45,6 +45,8 @@ jobs:
         run: |
           # Update the file with the new version
           # echo "${{ steps.check.outputs.version }}" > latest_release.txt
+          # echo "${{ steps.check.outputs.version }}" is latest release
+          # echo "${{ steps.check.outputs.processed }}" is local release
           
           # Create a new release in your repository
           gh release create ${{ steps.check.outputs.version }}

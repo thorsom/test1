@@ -1,0 +1,104 @@
+# This is a basic workflow that is manually triggered
+
+name: Weekly check
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+
+# Defines two custom environment variables for the workflow. These are used for the Container registry domain, and a name for the Docker image that this workflow builds.
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    outputs:
+      alive: ${{ steps.new.outputs.alive }}
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+      - name: Check for new release
+        id: check
+        run: |
+          # Use GitHub's API to check for a new release
+          LATEST_RELEASE=$(curl --silent "https://api.github.com/repos/sabnzbd/sabnzbd/releases/latest" | jq -r .tag_name)
+          echo "version=${LATEST_RELEASE}" >> $GITHUB_OUTPUT
+          # echo "::set-output name=version::${LATEST_RELEASE}"
+          echo "${{ steps.check.outputs.version }}" is latest release
+      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Read latest processed release
+        id: read
+        run: |
+          CURRENT_RELEASE=$(curl --silent "https://api.github.com/repos/thorsom/test1/releases/latest" | jq -r .tag_name)
+          if [ $CURRENT_RELEASE ]; then
+            echo "::set-output name=processed::${CURRENT_RELEASE}"
+          else
+            echo "::set-output name=processed::"
+          fi
+          echo "${{ steps.check.outputs.processed }}" is local release
+
+      - name: Create new release
+        id: new
+        if: steps.check.outputs.version != steps.read.outputs.processed
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "alive=true" >> $GITHUB_OUTPUT
+          # Create a new release in your repository
+          gh release create ${{ steps.check.outputs.version }}
+
+
+  build-and-push-image:
+    needs: check-release
+    if: ${{ needs.check-release.outputs.alive == 'true' }}
+    runs-on: ubuntu-latest
+
+    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
+    permissions:
+      contents: read
+      packages: write
+
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Uses the `docker/login-action` action to log in to the Container registry registry using the account and password that will publish the packages. Once published, the packages are scoped to the account defined here.
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # This step uses [docker/metadata-action](https://github.com/docker/metadata-action#about) to extract tags and labels that will be applied to the specified image. The `id` "meta" allows the output of this step to be referenced in a subsequent step. The `images` value provides the base name for the tags and labels.
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+
+      # This step uses the `docker/build-push-action` action to build the image, based on your repository's `Dockerfile`. If the build succeeds, it pushes the image to GitHub Packages.
+      # It uses the `context` parameter to define the build's context as the set of files located in the specified path. For more information, see "[Usage](https://github.com/docker/build-push-action#usage)" in the README of the `docker/build-push-action` repository.
+      # It uses the `tags` and `labels` parameters to tag and label the image with the output from the "meta" step.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
